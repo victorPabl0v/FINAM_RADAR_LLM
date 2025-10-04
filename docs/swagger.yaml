@@ -1,0 +1,133 @@
+definitions:
+  models.News:
+    properties:
+      dedup_group:
+        type: string
+      draft:
+        $ref: '#/definitions/models.draft'
+      entities:
+        items:
+          type: string
+        type: array
+      headline:
+        type: string
+      hotness:
+        type: number
+      sources:
+        items:
+          type: string
+        type: array
+      timeline:
+        type: string
+      why_now:
+        type: string
+    type: object
+  models.NewsRequest:
+    properties:
+      news:
+        items:
+          $ref: '#/definitions/models.News'
+        type: array
+    type: object
+  models.draft:
+    properties:
+      bullets:
+        items:
+          type: string
+        type: array
+      lead:
+        type: string
+      quotes:
+        type: string
+      title:
+        type: string
+    type: object
+  service.AddNewsResponse:
+    properties:
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  service.GetNewsFromSitesResponse:
+    properties:
+      news:
+        items:
+          $ref: '#/definitions/service.News'
+        type: array
+    type: object
+  service.News:
+    properties:
+      text:
+        type: string
+      title:
+        type: string
+      url:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /news:
+    get:
+      consumes:
+      - application/json
+      description: Парсит новости с указанных сайтов (например, TASS) и возвращает
+        заголовки, ссылки и текст статей
+      parameters:
+      - description: 'Название сайта (например: tass)'
+        in: query
+        name: site
+        required: true
+        type: string
+      - description: Количество новостей (по умолчанию 10)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/service.GetNewsFromSitesResponse'
+        "400":
+          description: Некорректный запрос или ошибка парсера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить новости с сайтов
+      tags:
+      - news
+    post:
+      consumes:
+      - application/json
+      description: Добавляет одну или несколько новостей с черновиком, источниками
+        и сущностями
+      parameters:
+      - description: Список новостей
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.NewsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное добавление
+          schema:
+            $ref: '#/definitions/service.AddNewsResponse'
+        "400":
+          description: Неверный JSON
+          schema:
+            $ref: '#/definitions/service.AddNewsResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/service.AddNewsResponse'
+      summary: Add news
+      tags:
+      - news
+swagger: "2.0"

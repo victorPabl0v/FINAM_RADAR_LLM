@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: pg_main
+    environment:
+      POSTGRES_USER: news_user
+      POSTGRES_PASSWORD: news_user
+      POSTGRES_DB: news_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U news_user -d news_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    image: migrate/migrate:4
+    container_name: migrate_job
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./db/migrations:/migrations:ro
+    command:
+      [
+        "-path", "/migrations",
+        "-database", "postgres://news_user:news_user@postgres:5432/news_db?sslmode=disable",
+        "up"
+      ]
+    restart: "no"
+
+  backend:
+    build: .
+    container_name: go_backend
+    environment:
+      DATABASE_URL: postgres://news_user:news_user@postgres:5432/news_db?sslmode=disable
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
